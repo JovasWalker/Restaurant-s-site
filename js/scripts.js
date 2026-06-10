@@ -1,84 +1,43 @@
-/*!
-* Start Bootstrap - Han's Restaurant v7.0.9 (https://startbootstrap.com/theme/business-casual)
-* Copyright 2013-2023 Start Bootstrap
-* Licensed under MIT (https://github.com/StartBootstrap/startbootstrap-business-casual/blob/master/LICENSE)
-*/
-// Highlights current date on contact page
-window.addEventListener('DOMContentLoaded', event => {
-    const listHoursArray = document.body.querySelectorAll('.list-hours li');
-    listHoursArray[new Date().getDay()].classList.add(('today'));
-})
+document.getElementById("contactForm").addEventListener("submit", async function(event) {
+    event.preventDefault(); // Prevents default page reload
 
+    const form = event.target;
+    const status = document.getElementById("statusMessage");
+    const submitButton = form.querySelector('button[type="submit"]');
+    const data = new FormData(form);
 
-// ==========================================
-// EmailJS Integration - Contact Form Handler
-// ==========================================
-// Initialize EmailJS with your Public Key
-// Replace 'YOUR_PUBLIC_KEY' with your actual EmailJS public key
-emailjs.init('UFyOCZT3WsR5po9ZD');
+    // Provide immediate visual feedback and disable duplicate submissions
+    status.innerHTML = "Sending message...";
+    status.style.color = "#0d6efd"; 
+    submitButton.disabled = true;
 
-// EmailJS Configuration
-// Replace with your actual EmailJS Service ID and Template ID
-const EMAILJS_SERVICE_ID = 'restaurant';
-const EMAILJS_TEMPLATE_ID = 'template_o6ij5rw';
+    try {
+        const response = await fetch(form.action, {
+            method: form.method,
+            body: data,
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
 
-// Handle contact form submission
-window.addEventListener('DOMContentLoaded', event => {
-    // Highlights current date on contact page
-    const listHoursArray = document.body.querySelectorAll('.list-hours li');
-    if (listHoursArray.length > 0) {
-        listHoursArray[new Date().getDay()].classList.add('today');
-    }
-
-    // Contact Form Handler
-    const contactForm = document.getElementById('contactForm');
-    if (contactForm) {
-        contactForm.addEventListener('submit', handleContactFormSubmit);
+        if (response.ok) {
+            status.innerHTML = "Thanks! Your message has been sent successfully.";
+            status.style.color = "green";
+            form.reset(); // Clears the input fields
+        } else {
+            const responseData = await response.json();
+            if (responseData.hasOwnProperty('errors')) {
+                status.innerHTML = responseData.errors.map(error => error.message).join(", ");
+            } else {
+                status.innerHTML = "Oops! There was a problem submitting your form.";
+            }
+            status.style.color = "red";
+        }
+    } catch (error) {
+        status.innerHTML = "Oops! There was a connectivity problem submitting your form.";
+        status.style.color = "red";
+    } finally {
+        // Re-enable the submit button regardless of outcome
+        submitButton.disabled = false;
     }
 });
-
-// Function to handle contact form submission
-function handleContactFormSubmit(e) {
-    e.preventDefault();
-
-    const statusMessage = document.getElementById('statusMessage');
-    const submitButton = e.target.querySelector('button[type="submit"]');
-
-    // Disable submit button while sending
-    submitButton.disabled = true;
-    submitButton.textContent = 'Sending...';
-    statusMessage.textContent = '';
-    statusMessage.className = 'mt-3 text-center';
-
-    // Prepare template parameters for EmailJS
-    const templateParams = {
-        user_name: document.getElementById('user_name').value,
-        user_email: document.getElementById('user_email').value,
-        message: document.getElementById('message').value
-    };
-
-    // Send email using EmailJS
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
-        .then(response => {
-            // Success message
-            statusMessage.className = 'mt-3 text-center text-success';
-            statusMessage.textContent = '✓ Message sent successfully! We\'ll get back to you soon.';
-            
-            // Reset form
-            contactForm.reset();
-            
-            // Re-enable submit button
-            submitButton.disabled = false;
-            submitButton.textContent = 'Send Message';
-        })
-        .catch(error => {
-            // Error message
-            statusMessage.className = 'mt-3 text-center text-danger';
-            statusMessage.textContent = '✗ Failed to send message. Please try again later.';
-            console.error('EmailJS Error:', error);
-            
-            // Re-enable submit button
-            submitButton.disabled = false;
-            submitButton.textContent = 'Send Message';
-        });
-}
